@@ -62,6 +62,7 @@
     <Compile Include="AssetsManager.cs" />
     <Compile Include="BaseComponents\Camera.cs" />
     <Compile Include="BaseComponents\Component.cs" />
+    <Compile Include="BaseComponents\Light.cs" />
     <Compile Include="BaseComponents\Mesh.cs" />
     <Compile Include="Components\Controller.cs" />
     <Compile Include="Extensions.cs" />

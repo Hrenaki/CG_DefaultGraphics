@@ -54,9 +54,13 @@ namespace CG_DefaultGraphics
                     }
                     else
                     {
-                        curdata[5] = 0;
-                        curdata[6] = 0;
-                        curdata[7] = 0;
+                        Vector3 p1 = v[v_i[i][0]];
+                        Vector3 p2 = v[v_i[i][1]];
+                        Vector3 p3 = v[v_i[i][2]];
+                        Vector3 normal = Vector3.Cross(p3 - p1, p2 - p1).Normalized();
+                        curdata[5] = normal.X;
+                        curdata[6] = normal.Y;
+                        curdata[7] = normal.Z;
                     }
                     int curVertexesCount = data.Count / 8;
                     uint k;
@@ -158,6 +162,8 @@ namespace CG_DefaultGraphics
             for (int i = 0; i < uniformsCount; i++)
             {
                 string uniformName = GL.GetActiveUniform(id, i, out _, out _);
+                if (uniformName.EndsWith("[0]"))
+                    uniformName = uniformName.Substring(0, uniformName.Length - 3);
                 locations[uniformName] = GL.GetUniformLocation(id, uniformName);
             }
         }

@@ -17,9 +17,10 @@ namespace CG_DefaultGraphics
         private List<GameObject> objects = new List<GameObject>();
         private Camera camera;
         private Shader shader;
-        public MainWindow() : base(1200, 920, GraphicsMode.Default, "Computer graphics")
+        public MainWindow() : base(1920, 1080, GraphicsMode.Default, "Computer graphics")
         {
-            //WindowState = WindowState.Maximized;
+            WindowState = WindowState.Maximized;
+            
             CursorVisible = false;
             CursorGrabbed = true;
         }
@@ -33,6 +34,7 @@ namespace CG_DefaultGraphics
             shader = AssetsManager.LoadShader("default", "Assets\\Shaders\\default.vsh", "Assets\\Shaders\\default.fsh");
 
             GameObject cameraObject = new GameObject();
+            cameraObject.transform.position.Z = -5;
             Controller controller = (Controller)cameraObject.addComponent<Controller>();
             controller.speed = 10f;
             camera = (Camera)cameraObject.addComponent<Camera>();
@@ -49,6 +51,17 @@ namespace CG_DefaultGraphics
             //diamondMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj")["cube"];
             //diamondMesh.texture = AssetsManager.LoadTexture("Assets\\Textures\\template.png");
             objects.Add(diamond);
+
+            GameObject lightObj = new GameObject();
+            lightObj.transform.position.Z = -2;
+            lightObj.transform.position.X = 2;
+            lightObj.transform.position.Y = 1;
+            Light light = (Light)lightObj.addComponent<Light>();
+            light.radius = 20;
+            light.brightness = 1.0f;
+            light.smoothness = 0.5f;
+            light.type = LightType.Point;
+            objects.Add(lightObj);
         }
         protected override void OnRenderFrame(FrameEventArgs e)
         {
@@ -62,6 +75,29 @@ namespace CG_DefaultGraphics
             Matrix4 model;
             GL.UniformMatrix4(shader.locations["proj"], false, ref proj);
             GL.UniformMatrix4(shader.locations["view"], true, ref view);
+
+            List<Light> lights = new List<Light>();
+            foreach (GameObject obj in objects)
+                lights.AddRange(obj.getComponents<Light>().Cast<Light>());
+
+            float[] lightsData = new float[lights.Count * 4];
+            float[] lightsCoefs = new float[lights.Count * 4];
+            for (int i = 0; i < lights.Count; i++)
+            {
+                Vector4 position = new Vector4(lights[i].gameObject.transform.position, (int)lights[i].type);
+                position = proj * view * lights[i].gameObject.transform.model * position;
+                lightsData[i * 4] = position.X;
+                lightsData[i * 4 + 1] = position.Y;
+                lightsData[i * 4 + 2] = position.Z;
+                lightsData[i * 4 + 3] = position.W;
+                lightsCoefs[i * 4] = lights[i].brightness;
+                lightsCoefs[i * 4 + 1] = lights[i].brightness / lights[i].radius;
+                lightsCoefs[i * 4 + 3] = lights[i].smoothness;
+            }
+            GL.Uniform4(shader.locations["lights"], lights.Count, lightsData);
+            GL.Uniform4(shader.locations["lightsCoefs"], lights.Count, lightsCoefs);
+            GL.Uniform1(shader.locations["lightsCount"], lights.Count);
+            GL.Uniform1(shader.locations["ambient"], 0.3f);
 
             foreach (GameObject obj in objects)
             {
