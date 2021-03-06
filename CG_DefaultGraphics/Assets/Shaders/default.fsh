@@ -9,6 +9,7 @@ uniform vec4 lights[64];
 uniform vec4 lightsCoefs[64];
 uniform int lightsCount;
 uniform float ambient;
+uniform vec3 camPos;
 
 out vec4 outColor;
 
@@ -26,9 +27,11 @@ void main(void)
         float coef_normal = 0.0f;
         float coef_glare = 0.0f;
 
-        lightCoef += lights[i].x;
-        lightCoef -= lights[i].x;
-        lightCoef += (1.0f - lightCoef) * lightsCoefs[i].x;
+        vec3 lightDirection = normalize(lights[i].xyz - _v);
+        coef_normal = max(0.0f, dot(lightDirection, _vn));
+        coef_glare = pow(max(0.0f, dot(normalize(camPos - _v), reflect(-lightDirection, _vn))), 128.0f);
+        lightCoef += (1.0f - lightCoef) * coef_normal * lightsCoefs[i].x;
+        lightCoef += (1.0f - lightCoef) * coef_glare * lightsCoefs[i].x;
 
         //if (lights[i].w == 0.0f)
         //{

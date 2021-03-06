@@ -15,7 +15,7 @@ out vec3 _vn;
 void main(void)
 {
 	gl_Position = proj * view * model * vec4(v, 1.0f);
-	_v = gl_Position.xyz;
+	_v = v;
 	_vt = vt;
 	_vn = vn;
 }

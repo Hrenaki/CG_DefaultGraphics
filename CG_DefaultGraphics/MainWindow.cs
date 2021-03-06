@@ -27,9 +27,9 @@ namespace CG_DefaultGraphics
         protected override void OnLoad(EventArgs e)
         {
             GL.Enable(EnableCap.DepthTest);
-            GL.Disable(EnableCap.CullFace);
+            GL.Enable(EnableCap.CullFace);
             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-            //GL.CullFace(CullFaceMode.Back);
+            GL.CullFace(CullFaceMode.Back);
 
             shader = AssetsManager.LoadShader("default", "Assets\\Shaders\\default.vsh", "Assets\\Shaders\\default.fsh");
 
@@ -53,12 +53,12 @@ namespace CG_DefaultGraphics
             objects.Add(diamond);
 
             GameObject lightObj = new GameObject();
-            lightObj.transform.position.Z = -2;
-            lightObj.transform.position.X = 2;
-            lightObj.transform.position.Y = 1;
+            lightObj.transform.position.Z = 0;
+            lightObj.transform.position.X = 0;
+            lightObj.transform.position.Y = 3;
             Light light = (Light)lightObj.addComponent<Light>();
             light.radius = 20;
-            light.brightness = 1.0f;
+            light.brightness = 0.6f;
             light.smoothness = 0.5f;
             light.type = LightType.Point;
             objects.Add(lightObj);
@@ -85,7 +85,6 @@ namespace CG_DefaultGraphics
             for (int i = 0; i < lights.Count; i++)
             {
                 Vector4 position = new Vector4(lights[i].gameObject.transform.position, (int)lights[i].type);
-                position = proj * view * lights[i].gameObject.transform.model * position;
                 lightsData[i * 4] = position.X;
                 lightsData[i * 4 + 1] = position.Y;
                 lightsData[i * 4 + 2] = position.Z;
@@ -98,6 +97,7 @@ namespace CG_DefaultGraphics
             GL.Uniform4(shader.locations["lightsCoefs"], lights.Count, lightsCoefs);
             GL.Uniform1(shader.locations["lightsCount"], lights.Count);
             GL.Uniform1(shader.locations["ambient"], 0.3f);
+            GL.Uniform3(shader.locations["camPos"], camera.gameObject.transform.position);
 
             foreach (GameObject obj in objects)
             {

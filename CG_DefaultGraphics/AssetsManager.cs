@@ -188,7 +188,7 @@ namespace CG_DefaultGraphics
             int offset_n = 0;
             while ((line = reader.ReadLine()) != null)
             {
-                string[] words = line.Replace('.', ',').Split(' ');
+                string[] words = line.Replace('.', '.').Split(' ');
                 if (words.Length == 0)
                     continue;
                 switch (words[0])
