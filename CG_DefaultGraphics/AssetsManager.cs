@@ -7,6 +7,7 @@ using System.IO;
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 using System.Drawing;
+using System.Globalization;
 
 namespace CG_DefaultGraphics
 {
@@ -188,7 +189,11 @@ namespace CG_DefaultGraphics
             int offset_n = 0;
             while ((line = reader.ReadLine()) != null)
             {
-                string[] words = line.Replace('.', '.').Split(' ');
+                if (NumberFormatInfo.CurrentInfo.NumberDecimalSeparator == ",")
+                    line = line.Replace('.', ',');
+                else
+                    line = line.Replace(',', '.');
+                string[] words = line.Split(' ');
                 if (words.Length == 0)
                     continue;
                 switch (words[0])
