@@ -11,7 +11,6 @@ namespace CG_DefaultGraphics.BaseComponents
     {
         public Vector3 position;
         public Quaternion rotation;
-        public Vector3 scale;
         public Matrix4 model { get 
             {
                 //return Matrix4.CreateScale(scale.X, scale.Y, scale.Z) * 
@@ -32,7 +31,6 @@ namespace CG_DefaultGraphics.BaseComponents
         {
             position = Vector3.Zero;
             rotation = Quaternion.Identity;
-            scale = new Vector3(1f, 1f, 1f);
         }
     }
 }

@@ -175,7 +175,7 @@ namespace CG_DefaultGraphics
         public static Dictionary<string, Model> Models = new Dictionary<string, Model>();
         public static Dictionary<string, Shader> Shaders = new Dictionary<string, Shader>();
         public static Dictionary<string, Texture> Textures = new Dictionary<string, Texture>();
-        public static Dictionary<string, Model> LoadModelsFile(string path, bool reverse = false)
+        public static Dictionary<string, Model> LoadModelsFile(string path, float scaleFactor = 1.0f, bool reverse = false)
         {
             StreamReader reader = new StreamReader(File.OpenRead(path));
 
@@ -218,7 +218,7 @@ namespace CG_DefaultGraphics
                             model.v = new List<Vector3>();
                             model.v_i = new List<int[]>();
                         }
-                        model.v.Add(new Vector3(float.Parse(words[1]), float.Parse(words[2]), float.Parse(words[3])));
+                        model.v.Add(new Vector3(float.Parse(words[1]) * scaleFactor, float.Parse(words[2]) * scaleFactor, float.Parse(words[3]) * scaleFactor));
                         break;
                     case "vt":
                         if (model.t == null)

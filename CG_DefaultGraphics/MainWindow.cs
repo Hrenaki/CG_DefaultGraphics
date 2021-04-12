@@ -9,6 +9,7 @@ using OpenTK.Graphics.OpenGL4;
 using CG_DefaultGraphics.BaseComponents;
 using CG_DefaultGraphics.Components;
 using OpenTK.Input;
+using System.Diagnostics;
 
 namespace CG_DefaultGraphics
 {
@@ -35,33 +36,52 @@ namespace CG_DefaultGraphics
 
             GameObject cameraObject = new GameObject();
             cameraObject.transform.position.Z = -5;
+            cameraObject.transform.rotation = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI / 4f);
             Controller controller = (Controller)cameraObject.addComponent<Controller>();
             controller.speed = 10f;
             camera = (Camera)cameraObject.addComponent<Camera>();
-            camera.FOV = (float)(70.0 / 180.0 * Math.PI);
+            camera.FOV = (float)(85.0 / 180.0 * Math.PI);
             camera.resolution = (float)Width / (float)Height;
             camera.near = 0.01f;
             camera.far = 100f;
             objects.Add(cameraObject);
 
-            GameObject diamond = new GameObject();
-            //diamond.transform.position.Z = 5f;
-            Mesh diamondMesh = (Mesh)diamond.addComponent<Mesh>();
-            diamondMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", true)["diamondwhite_dmesh"];
-            //diamondMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj")["cube"];
-            //diamondMesh.texture = AssetsManager.LoadTexture("Assets\\Textures\\template.png");
-            objects.Add(diamond);
+            GameObject cube = new GameObject();
+            Mesh cubeMesh = (Mesh)cube.addComponent<Mesh>();
+            //diamondMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", true)["diamondwhite_dmesh"];
+            cubeMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj")["cube"];
+            cubeMesh.texture = AssetsManager.LoadTexture("Assets\\Textures\\template.png");
+            objects.Add(cube);
 
             GameObject lightObj = new GameObject();
-            lightObj.transform.position.Z = 0;
-            lightObj.transform.position.X = 0;
-            lightObj.transform.position.Y = 3;
+            lightObj.transform.position.X = -5.0f;
+            lightObj.transform.position.Y = 5.0f;
+            lightObj.transform.position.Z = -5.0f;
             Light light = (Light)lightObj.addComponent<Light>();
-            light.radius = 20;
-            light.brightness = 0.6f;
-            light.smoothness = 0.5f;
+            light.Radius = 20;
+            light.Brightness = 1.0f;
+            light.Intensity = 0.0f;
+            light.Angle = 10.0f * (float)Math.PI / 180.0f;
             light.type = LightType.Point;
             objects.Add(lightObj);
+
+            for (int i = 0; i < 30; i++)
+            {
+                GameObject lightObj2 = new GameObject();
+                lightObj2.addComponent<Light>();
+                light.Radius = 20;
+                light.Brightness = 1.0f;
+                light.Intensity = 0.0f;
+                light.Angle = 10.0f * (float)Math.PI / 180.0f;
+                light.type = LightType.Point;
+                objects.Add(lightObj2);
+            }
+
+            GameObject ambientObj = new GameObject();
+            Light ambient = (Light)ambientObj.addComponent<Light>();
+            ambient.Brightness = 0.2f;
+            ambient.type = LightType.Ambient;
+            objects.Add(ambientObj);
         }
         protected override void OnRenderFrame(FrameEventArgs e)
         {
@@ -74,29 +94,27 @@ namespace CG_DefaultGraphics
             Matrix4 view = camera.view;
             Matrix4 model;
             GL.UniformMatrix4(shader.locations["proj"], false, ref proj);
-            GL.UniformMatrix4(shader.locations["view"], true, ref view);
+            GL.UniformMatrix4(shader.locations["view"], false, ref view);
 
             List<Light> lights = new List<Light>();
             foreach (GameObject obj in objects)
                 lights.AddRange(obj.getComponents<Light>().Cast<Light>());
 
-            float[] lightsData = new float[lights.Count * 4];
-            float[] lightsCoefs = new float[lights.Count * 4];
+            int loc_lightsPositions = shader.locations["lights[0].position"];
+            int loc_lightsDirections = shader.locations["lights[0].direction"];
+            int loc_lightsCoeffs = shader.locations["lights[0].coeffs"];
+            int loc_lightsColors = shader.locations["lights[0].color"];
+
             for (int i = 0; i < lights.Count; i++)
             {
-                Vector4 position = new Vector4(lights[i].gameObject.transform.position, (int)lights[i].type);
-                lightsData[i * 4] = position.X;
-                lightsData[i * 4 + 1] = position.Y;
-                lightsData[i * 4 + 2] = position.Z;
-                lightsData[i * 4 + 3] = position.W;
-                lightsCoefs[i * 4] = lights[i].brightness;
-                lightsCoefs[i * 4 + 1] = lights[i].brightness / lights[i].radius;
-                lightsCoefs[i * 4 + 3] = lights[i].smoothness;
+                Vector4 position = new Vector4(lights[i].gameObject.transform.position, (int)lights[i].type <= 1 ? 0.0f : 1.0f);
+                Vector4 direction = new Vector4(lights[i].gameObject.transform.forward, (int)lights[i].type % 2 == 1 ? 1.0f : 0.0f);
+                GL.Uniform4(loc_lightsPositions + i * 4, position);
+                GL.Uniform4(loc_lightsDirections + i * 4, direction);
+                GL.Uniform4(loc_lightsCoeffs + i * 4, lights[i].Radius, lights[i].Brightness, lights[i].Intensity, lights[i].Angle);
+                GL.Uniform3(loc_lightsColors + i * 4, lights[i].color.R, lights[i].color.G, lights[i].color.B);
             }
-            GL.Uniform4(shader.locations["lights"], lights.Count, lightsData);
-            GL.Uniform4(shader.locations["lightsCoefs"], lights.Count, lightsCoefs);
             GL.Uniform1(shader.locations["lightsCount"], lights.Count);
-            GL.Uniform1(shader.locations["ambient"], 0.3f);
             GL.Uniform3(shader.locations["camPos"], camera.gameObject.transform.position);
 
             foreach (GameObject obj in objects)

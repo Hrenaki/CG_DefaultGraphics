@@ -30,8 +30,6 @@ namespace CG_DefaultGraphics.Components
             if (Input.IsKeyDown(Key.Space))
                 gameObject.transform.position += Vector3.UnitY * curSpeed;
 
-            Console.WriteLine(gameObject.transform.position.ToString());
-
             Vector2 mouseDelta = Input.GetMouseDelta() / 1000f;
             gameObject.transform.rotation = Quaternion.FromAxisAngle(Vector3.UnitY, mouseDelta.X) * Quaternion.FromAxisAngle(gameObject.transform.right, mouseDelta.Y) * gameObject.transform.rotation;
         }

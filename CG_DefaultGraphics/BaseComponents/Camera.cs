@@ -16,22 +16,25 @@ namespace CG_DefaultGraphics.BaseComponents
         public Matrix4 view { get
             {
                 //return Matrix4.LookAt(gameObject.transform.position, gameObject.transform.position + gameObject.transform.forward, gameObject.transform.up);
-                //Matrix4 mat = new Matrix4(new Vector4(gameObject.transform.right, 0f),
-                //                          new Vector4(gameObject.transform.up, 0f),
-                //                          new Vector4(gameObject.transform.forward, 0f),
-                //                          new Vector4(-gameObject.transform.position, 1f));
-                //return mat;
-                Matrix4 translation = new Matrix4(1, 0, 0, gameObject.transform.position.X,
-                                                  0, 1, 0, gameObject.transform.position.Y,
-                                                  0, 0, 1, gameObject.transform.position.Z,
-                                                  0, 0, 0, 1);
-                Matrix4 rot = gameObject.transform.rotation.createRotation();//Matrix4.CreateFromQuaternion(gameObject.transform.rotation);
-                return (translation * rot).Inverted();
+                Vector3 r = gameObject.transform.right;
+                Vector3 u = gameObject.transform.up;
+                Vector3 f = gameObject.transform.forward;
+                Vector3 p = -gameObject.transform.position;
+                Matrix4 mat = new Matrix4(r.X, u.X, f.X, 0f,
+                                          r.Y, u.Y, f.Y, 0f,
+                                          r.Z, u.Z, f.Z, 0f,
+                                          Vector3.Dot(p, r), Vector3.Dot(p, u), Vector3.Dot(p, f), 1f);
+                return mat;
+                //Matrix4 translation = new Matrix4(1, 0, 0, gameObject.transform.position.X,
+                //                                  0, 1, 0, gameObject.transform.position.Y,
+                //                                  0, 0, 1, gameObject.transform.position.Z,
+                //                                  0, 0, 0, 1);
+                //Matrix4 rot = gameObject.transform.rotation.createRotation();
+                //return (translation * rot).Inverted();
             } 
         }
         public Matrix4 proj { get
             {
-                //return Matrix4.CreatePerspectiveFieldOfView(FOV, resolution, near, far);
                 float ctg = 1f / (float)Math.Tan(FOV / 2f);
                 return new Matrix4(ctg / resolution, 0f, 0f, 0f,
                                    0f, ctg, 0f, 0f,
