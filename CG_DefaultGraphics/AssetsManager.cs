@@ -169,7 +169,55 @@ namespace CG_DefaultGraphics
             }
         }
     }
+    public class ShaderComponent
+    {
+        public int Id { get; private set; }
+        public ShaderType Type { get; private set; }
+        public ShaderComponent(string path)
+        {
+            if (!Directory.Exists(Path.GetDirectoryName(path)) || !File.Exists(path))
+                throw new FileNotFoundException("Vertex shader file not found", path);
 
+            switch (Path.GetExtension(path))
+            {
+                case ".vsh":
+                    Type = ShaderType.VertexShader;
+                    break;
+                case ".fsh":
+                    Type = ShaderType.FragmentShader;
+                    break;
+                case ".gsh":
+                    Type = ShaderType.GeometryShader;
+                    break;
+                case ".csh":
+                    Type = ShaderType.ComputeShader;
+                    break;
+                default:
+                    throw new ArgumentException("Unable to get shader type from file extension, change the file extension or define shader type explicitly by using other constructor overload.");
+            }
+            Id = GL.CreateShader(Type);
+            GL.ShaderSource(Id, File.ReadAllText(path));
+            GL.CompileShader(Id);
+            int result;
+            GL.GetShader(Id, ShaderParameter.CompileStatus, out result);
+            if (result == 0)
+                throw new Exception("Shader compilation error, shader type: " + Type.ToString() + ", error: " + GL.GetShaderInfoLog(Id));
+        }
+        public ShaderComponent(ShaderType type, string path)
+        {
+            if (!Directory.Exists(Path.GetDirectoryName(path)) || !File.Exists(path))
+                throw new FileNotFoundException("Vertex shader file not found", path);
+
+            Type = type;
+            Id = GL.CreateShader(type);
+            GL.ShaderSource(Id, File.ReadAllText(path));
+            GL.CompileShader(Id);
+            int result;
+            GL.GetShader(Id, ShaderParameter.CompileStatus, out result);
+            if (result == 0)
+                throw new Exception("Shader compilation error, shader type: " + Type.ToString() + ", error: " + GL.GetShaderInfoLog(Id));
+        }
+    }
     public static class AssetsManager
     {
         public static Dictionary<string, Model> Models = new Dictionary<string, Model>();
@@ -285,39 +333,22 @@ namespace CG_DefaultGraphics
                 mdl.updateVAO();
             return models;
         }
-        public static Shader LoadShader(string shaderName, string vertexShaderPath, string fragmentShaderPath)
+        public static Shader LoadShader(string shaderName, params ShaderComponent[] shaderComponents)
         {
-            if (!Directory.Exists(Path.GetDirectoryName(vertexShaderPath)) || !File.Exists(vertexShaderPath))
-                throw new FileNotFoundException("Vertex shader file not found", vertexShaderPath);
-            if (!Directory.Exists(Path.GetDirectoryName(fragmentShaderPath)) || !File.Exists(fragmentShaderPath))
-                throw new FileNotFoundException("Fragment shader file not found", fragmentShaderPath);
-            int vertexShader = GL.CreateShader(ShaderType.VertexShader);
-            GL.ShaderSource(vertexShader, File.ReadAllText(vertexShaderPath));
-            GL.CompileShader(vertexShader);
-            int result;
-            GL.GetShader(vertexShader, ShaderParameter.CompileStatus, out result);
-            if (result == 0)
-                throw new Exception("Vertex shader compilation error: " + GL.GetShaderInfoLog(vertexShader));
-
-            int fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
-            GL.ShaderSource(fragmentShader, File.ReadAllText(fragmentShaderPath));
-            GL.CompileShader(fragmentShader);
-            GL.GetShader(fragmentShader, ShaderParameter.CompileStatus, out result);
-            if (result == 0)
-                throw new Exception("Fragment shader compilation error: " + GL.GetShaderInfoLog(fragmentShader));
-
             int program = GL.CreateProgram();
-            GL.AttachShader(program, vertexShader);
-            GL.AttachShader(program, fragmentShader);
+            foreach (ShaderComponent component in shaderComponents)
+                GL.AttachShader(program, component.Id);
             GL.LinkProgram(program);
+            int result;
             GL.GetProgram(program, GetProgramParameterName.LinkStatus, out result);
             if (result == 0)
                 throw new Exception("Program linking error: " + GL.GetProgramInfoLog(program));
 
-            GL.DetachShader(program, vertexShader);
-            GL.DetachShader(program, fragmentShader);
-            GL.DeleteShader(vertexShader);
-            GL.DeleteShader(fragmentShader);
+            foreach (ShaderComponent component in shaderComponents)
+            {
+                GL.DetachShader(program, component.Id);
+                GL.DeleteShader(component.Id);
+            }
 
             Shader shader = new Shader(program);
             Shaders[shaderName] = shader;

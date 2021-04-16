@@ -9,6 +9,8 @@ namespace CG_DefaultGraphics.BaseComponents
 {
     public class Camera : Component
     {
+        public static Camera Current { get; private set; }
+
         public float FOV;
         public float resolution;
         public float near;
@@ -20,10 +22,10 @@ namespace CG_DefaultGraphics.BaseComponents
                 Vector3 u = gameObject.transform.up;
                 Vector3 f = gameObject.transform.forward;
                 Vector3 p = -gameObject.transform.position;
-                Matrix4 mat = new Matrix4(r.X, u.X, f.X, 0f,
-                                          r.Y, u.Y, f.Y, 0f,
-                                          r.Z, u.Z, f.Z, 0f,
-                                          Vector3.Dot(p, r), Vector3.Dot(p, u), Vector3.Dot(p, f), 1f);
+                Matrix4 mat = new Matrix4(r.X, r.Y, r.Z, Vector3.Dot(p, r),
+                                          u.X, u.Y, u.Z, Vector3.Dot(p, u),
+                                          f.X, f.Y, f.Z, Vector3.Dot(p, f),
+                                          0f, 0f, 0f, 1f);
                 return mat;
                 //Matrix4 translation = new Matrix4(1, 0, 0, gameObject.transform.position.X,
                 //                                  0, 1, 0, gameObject.transform.position.Y,
@@ -38,9 +40,13 @@ namespace CG_DefaultGraphics.BaseComponents
                 float ctg = 1f / (float)Math.Tan(FOV / 2f);
                 return new Matrix4(ctg / resolution, 0f, 0f, 0f,
                                    0f, ctg, 0f, 0f,
-                                   0f, 0f, (far + near) / (far - near), 1f,
-                                   0f, 0f, -2f * far * near / (far - near), 0f);
+                                   0f, 0f, (far + near) / (far - near), -2f * far * near / (far - near),
+                                   0f, 0f, 1f, 0f);
             }
+        }
+        public void MakeCurrent()
+        {
+            Camera.Current = this;
         }
     }
 }
