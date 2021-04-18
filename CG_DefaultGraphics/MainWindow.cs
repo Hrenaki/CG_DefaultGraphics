@@ -9,7 +9,7 @@ using OpenTK.Graphics.OpenGL4;
 using CG_DefaultGraphics.BaseComponents;
 using CG_DefaultGraphics.Components;
 using OpenTK.Input;
-using System.Diagnostics;
+using System.Xaml;
 
 namespace CG_DefaultGraphics
 {
@@ -17,6 +17,10 @@ namespace CG_DefaultGraphics
     {
         private List<GameObject> objects = new List<GameObject>();
         private Shader shader;
+        private int HDRFBO;
+        private int HDRTexture;
+        private int quadVAO;
+        private float exposure = 1.0f;
         public MainWindow() : base(1920, 1080, GraphicsMode.Default, "Computer graphics")
         {
             Input.Init();
@@ -33,10 +37,60 @@ namespace CG_DefaultGraphics
             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             GL.CullFace(CullFaceMode.Back);
 
+            HDRFBO = GL.GenFramebuffer();
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, HDRFBO);
+
+            HDRTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, HDRTexture);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, Width, Height, 0, PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            //GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+            //GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, HDRTexture, 0);
+
+            int HDRDepth = GL.GenRenderbuffer();
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, HDRDepth);
+            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.DepthComponent, Width, Height);
+
+            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, HDRDepth);
+
+            GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
+
+            if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
+                throw new Exception("Frame buffer is not complete.");
+
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
+
+            float[] data = new float[] { -1f, 1f, 0f, 1f,
+                                         -1f, -1f, 0f, 0f,
+                                         1f, -1f, 1f, 0f,
+                                         1f, 1f, 1f, 1f };
+
+            quadVAO = GL.GenVertexArray();
+            GL.BindVertexArray(quadVAO);
+
+            int VBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
+
+            GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * 4, 0);
+            GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * 4, 2 * 4);
+
+            GL.EnableVertexAttribArray(0);
+            GL.EnableVertexAttribArray(1);
+
+            GL.BufferData(BufferTarget.ArrayBuffer, data.Length * 4, data, BufferUsageHint.StaticDraw);
+
+            GL.BindVertexArray(0);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
             shader = AssetsManager.LoadShader("default", new ShaderComponent("Assets\\Shaders\\default.vsh"), new ShaderComponent("Assets\\Shaders\\default.fsh"));
             AssetsManager.LoadShader("light_directional", new ShaderComponent("Assets\\Shaders\\light_directional.vsh"), new ShaderComponent("Assets\\Shaders\\light_directional.fsh"));
             AssetsManager.LoadShader("light_point", new ShaderComponent("Assets\\Shaders\\light_point.vsh"), new ShaderComponent("Assets\\Shaders\\light_point.gsh"), new ShaderComponent("Assets\\Shaders\\light_point.fsh"));
-            AssetsManager.LoadShader("quad", new ShaderComponent("Assets\\Shaders\\quad.vsh"), new ShaderComponent("Assets\\Shaders\\quad.fsh"));
+            AssetsManager.LoadShader("postProcessing", new ShaderComponent("Assets\\Shaders\\postProcessing.vsh"), new ShaderComponent("Assets\\Shaders\\postProcessing.fsh"));
 
             GameObject cameraObject = new GameObject();
             cameraObject.transform.position = new Vector3(0f, 2f, -4f);
@@ -72,38 +126,28 @@ namespace CG_DefaultGraphics
             cubeMesh2.texture = AssetsManager.Textures["template"];
             objects.Add(cube2);
 
-            //GameObject lightObj = new GameObject();
-            //lightObj.transform.position.X = -5.0f;
-            //lightObj.transform.position.Y = 5.0f;
-            //lightObj.transform.position.Z = -5.0f;
-            //Light light = (Light)lightObj.addComponent<Light>();
-            //light.Radius = 20;
-            //light.Brightness = 1.0f;
-            //light.Intensity = 0.0f;
-            //light.Angle = 10.0f * (float)Math.PI / 180.0f;
-            //light.type = LightType.Point;
-            //objects.Add(lightObj);
-
             GameObject ambientObj = new GameObject();
             AmbientLight ambient = (AmbientLight)ambientObj.addComponent<AmbientLight>();
             ambient.Brightness = 0.2f;
             objects.Add(ambientObj);
 
             GameObject directionalObj = new GameObject();
-            directionalObj.transform.position = new Vector3(0f, 2f, -4f);
-            directionalObj.transform.rotation = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI / 6f);
-            SpotLight directional = (SpotLight)directionalObj.addComponent<SpotLight>();
-            directional.Brightness = 0.4f;
+            directionalObj.transform.position.Y = 2.0f;
+            //directionalObj.transform.rotation = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI / 6f);
+            PointLight directional = (PointLight)directionalObj.addComponent<PointLight>();
+            directional.Brightness = 0.5f;
             directional.Radius = 20f;
             directional.Intensity = 1f;
             directional.color = Color4.DarkOrange;
-            directional.Angle = (float)Math.PI / 180f * 100f;
+            directionalObj.addComponent<AutoFlyAround>();
+            //directional.Angle = (float)Math.PI / 180f * 100f;
             objects.Add(directionalObj);
         }
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             renderLights();
             renderScene();
+            renderPostProcessing();
         }
         private void renderLights()
         {
@@ -118,6 +162,8 @@ namespace CG_DefaultGraphics
 
             Matrix4 model;
 
+            Shader lightShader;
+
             for (int i = 0; i < lights.Count; i++)
             {
                 if (lights[i] is AmbientLight)
@@ -126,6 +172,7 @@ namespace CG_DefaultGraphics
                 if (lights[i] is SpotLight)
                 {
                     SpotLight curLight = lights[i] as SpotLight;
+                    lightShader = shader_directional;
 
                     GL.BindFramebuffer(FramebufferTarget.Framebuffer, curLight.FBO);
                     GL.Clear(ClearBufferMask.DepthBufferBit);
@@ -134,13 +181,14 @@ namespace CG_DefaultGraphics
 
                     Matrix4 lightSpace = curLight.lightSpace;
 
-                    GL.UseProgram(shader_directional.id);
+                    GL.UseProgram(lightShader.id);
 
-                    GL.UniformMatrix4(shader_directional.locations["lightSpace"], true, ref lightSpace);
+                    GL.UniformMatrix4(lightShader.locations["lightSpace"], true, ref lightSpace);
                 }
                 else if (lights[i] is DirectionalLight)
                 {
                     DirectionalLight curLight = lights[i] as DirectionalLight;
+                    lightShader = shader_directional;
 
                     GL.BindFramebuffer(FramebufferTarget.Framebuffer, curLight.FBO);
                     GL.Clear(ClearBufferMask.DepthBufferBit);
@@ -149,30 +197,26 @@ namespace CG_DefaultGraphics
 
                     Matrix4 lightSpace = curLight.lightSpace;
 
-                    GL.UseProgram(shader_directional.id);
+                    GL.UseProgram(lightShader.id);
 
-                    GL.UniformMatrix4(shader_directional.locations["lightSpace"], true, ref lightSpace);
+                    GL.UniformMatrix4(lightShader.locations["lightSpace"], true, ref lightSpace);
                 } else
                 {
                     PointLight curLight = lights[i] as PointLight;
+                    lightShader = shader_point;
 
                     GL.BindFramebuffer(FramebufferTarget.Framebuffer, curLight.FBO);
                     GL.Clear(ClearBufferMask.DepthBufferBit);
 
-                    GL.Viewport(0, 0, SpotLight.SHADOW_SIZE, SpotLight.SHADOW_SIZE);
+                    GL.Viewport(0, 0, PointLight.SHADOW_SIZE, PointLight.SHADOW_SIZE);
 
-                    GL.UseProgram(shader_point.id);
+                    GL.UseProgram(lightShader.id);
 
                     Matrix4[] lightSpaces = curLight.lightSpaces;
-                    float[] data = new float[16 * 6];
-                    for (int mat = 0; i < 6; i++)
-                        for (int y = 0; y < 4; y++)
-                            for (int x = 0; x < 4; x++)
-                                data[mat * 16 + y * 4 + x] = lightSpaces[mat][y, x];
-
-                    GL.UniformMatrix4(shader_point.locations["lightSpaces"], 6, true, data);
-                    GL.Uniform3(shader_point.locations["lightPos"], curLight.gameObject.transform.position);
-                    GL.Uniform1(shader_point.locations["far"], curLight.Radius);
+                    for (int mat = 0; mat < 6; mat++)
+                        GL.UniformMatrix4(lightShader.locations["lightSpaces"] + mat, true, ref lightSpaces[mat]);
+                    GL.Uniform3(lightShader.locations["lightPos"], curLight.gameObject.transform.position);
+                    GL.Uniform1(lightShader.locations["radius"], curLight.Radius);
                 }
 
                 foreach (GameObject obj in objects)
@@ -181,7 +225,7 @@ namespace CG_DefaultGraphics
                     if (meshs.Length > 0)
                     {
                         model = obj.transform.model;
-                        GL.UniformMatrix4(shader_directional.locations["model"], true, ref model);
+                        GL.UniformMatrix4(lightShader.locations["model"], true, ref model);
                         foreach (Mesh mesh in meshs)
                         {
                             if (mesh.model != null)
@@ -194,10 +238,12 @@ namespace CG_DefaultGraphics
                 }
             }
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            //renderDepthBuffer((lights[1] as SpotLight).shadowTex, SpotLight.NEAR, (lights[1] as SpotLight).Radius);
+            //renderDepthBuffer((lights[0] as PointLight).shadowCube, PointLight.NEAR, (lights[0] as PointLight).Radius);
         }
         private void renderScene()
         {
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, HDRFBO);
+
             GL.ClearColor(new Color4(0.2f, 0.2f, 0.2f, 0.2f));
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.CullFace(CullFaceMode.Back);
@@ -230,12 +276,6 @@ namespace CG_DefaultGraphics
                     SpotLight curLight = lights[i] as SpotLight;
 
                     Matrix4 lightSpace = curLight.lightSpace;
-                    //float[] data = new float[16 * 6];
-                    //for (int y = 0; y < 4; y++)
-                    //    for (int x = 0; x < 4; x++)
-                    //        data[y * 4 + x] = lightSpace[y, x];
-                    //
-                    //GL.UniformMatrix4(loc_lightSpaces + i * loc_offset, 6, true, data);
                     GL.UniformMatrix4(shader.locations["spotLights[" + spotLights.ToString() + "].lightSpace"], true, ref lightSpace);
 
                     GL.Uniform1(shader.locations["spotLights[" + spotLights.ToString() + "].shadowTex"], i + 1);
@@ -274,16 +314,7 @@ namespace CG_DefaultGraphics
                 {
                     PointLight curLight = lights[i] as PointLight;
 
-                    Matrix4[] lightSpaces = curLight.lightSpaces;
-                    float[] data = new float[16 * 6];
-                    for (int mat = 0; i < 6; i++)
-                        for (int y = 0; y < 4; y++)
-                            for (int x = 0; x < 4; x++)
-                                data[mat * 16 + y * 4 + x] = lightSpaces[mat][y, x];
-
-                    GL.UniformMatrix4(shader.locations["pointLights[" + pointLights.ToString() + "].lightSpace"], 6, true, data);
-
-                    //GL.Uniform1(loc_shadowCube + i * loc_offset, i + 1);
+                    GL.Uniform1(shader.locations["pointLights[" + pointLights.ToString() + "].shadowCube"], i + 1);
                     GL.ActiveTexture(TextureUnit.Texture1 + i);
                     GL.BindTexture(TextureTarget.TextureCubeMap, curLight.shadowCube);
 
@@ -310,11 +341,9 @@ namespace CG_DefaultGraphics
             GL.Uniform1(shader.locations["spotLightsCount"], spotLights);
             GL.Uniform1(shader.locations["pointLightsCount"], pointLights);
 
-            Matrix4 proj = Camera.Current.proj;
-            Matrix4 view = Camera.Current.view;
+            Matrix4 camSpace = Camera.Current.camSpace;
             Matrix4 model;
-            GL.UniformMatrix4(shader.locations["proj"], true, ref proj);
-            GL.UniformMatrix4(shader.locations["view"], true, ref view);
+            GL.UniformMatrix4(shader.locations["camSpace"], true, ref camSpace);
 
             GL.Uniform3(shader.locations["camPos"], Camera.Current.gameObject.transform.position);
             GL.Uniform1(shader.locations["spot_near"], SpotLight.NEAR);
@@ -345,49 +374,39 @@ namespace CG_DefaultGraphics
 
             GL.BindVertexArray(0);
 
-            SwapBuffers();
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+
+            //SwapBuffers();
         }
-        private void renderDepthBuffer(int depthBuffer, float near, float far)
+        private void renderPostProcessing()
         {
             GL.ClearColor(new Color4(0.2f, 0.2f, 0.2f, 0.2f));
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.CullFace(CullFaceMode.Back);
             GL.Viewport(0, 0, Width, Height);
 
-            GL.UseProgram(AssetsManager.Shaders["quad"].id);
+            Shader postProcessingShader = AssetsManager.Shaders["postProcessing"];
 
-            float[] data = new float[] { -1f, 1f, 0f, 0f,
-                                         -1f, -1f, 0f, 1f,
-                                         1f, -1f, 1f, 1f,
-                                         1f, 1f, 1f, 0f };
+            GL.UseProgram(postProcessingShader.id);
 
-            int VAO = GL.GenVertexArray();
-            GL.BindVertexArray(VAO);
+            GL.ActiveTexture(TextureUnit.Texture0);
+            GL.BindTexture(TextureTarget.Texture2D, HDRTexture);
 
-            int VBO = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
+            GL.Uniform1(postProcessingShader.locations["exposure"], exposure);
 
-            GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * 4, 0);
-            GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * 4, 2 * 4);
-
-            GL.EnableVertexAttribArray(0);
-            GL.EnableVertexAttribArray(1);
-
-            GL.BufferData(BufferTarget.ArrayBuffer, data.Length * 4, data, BufferUsageHint.StaticDraw);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-
-            GL.Uniform1(AssetsManager.Shaders["quad"].locations["near"], near);
-            GL.Uniform1(AssetsManager.Shaders["quad"].locations["far"], far);
-
-            GL.BindTexture(TextureTarget.Texture2D, depthBuffer);
+            GL.BindVertexArray(quadVAO);
             GL.DrawArrays(PrimitiveType.Quads, 0, 4);
             GL.BindTexture(TextureTarget.Texture2D, 0);
 
-            GL.BindVertexArray(0);
-            GL.DeleteBuffer(VBO);
-            GL.DeleteVertexArray(VAO);
-
             SwapBuffers();
+
+            //float[] pixels = new float[3 * Width * Height / 4];
+            //GL.ReadPixels(Width / 4, Height / 4, Width / 2, Height / 2, PixelFormat.Rgb, PixelType.Float, pixels);
+            //float total = 0f;
+            //for (int i = 0; i < pixels.Length; i++)
+            //    total += pixels[i];
+            //total /= pixels.Length;
+            //exposure += (0.4f - total) * 0.1f;
         }
         protected override void OnUpdateFrame(FrameEventArgs e)
         {

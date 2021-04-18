@@ -47,7 +47,6 @@ struct PointLight
     float brightness;
     float intensity;
     vec3 color;
-    mat4 lightSpaces[6];
     samplerCube shadowCube;
 };
 uniform AmbientLight ambientLights[MAX_LIGHTS_COUNT];
@@ -74,7 +73,7 @@ uniform int pointLightsCount;
 uniform vec3 camPos;
 uniform float spot_near;
 
-out vec4 outColor;
+layout (location = 0) out vec4 outColor;
 
 void main()
 {
@@ -89,10 +88,10 @@ void main()
     for (int i = 0; i < directionalLightsCount; i++)
     {
         curLightCoef = 0f;
-
+    
         vec3 vl = (_vdl[i].xyz / _vdl[i].w) * 0.5f + 0.5f;
         vec3 lightDirection = -directionalLights[i].direction;
-        if (vl.z - max(SHADOW_BIAS_MAX * (1.0 - dot(_vn, lightDirection)), SHADOW_BIAS_MIN) < texture(directionalLights[i].shadowTex, vl.xy).r)
+        if (vl.z - max(SHADOW_BIAS_MAX * (1.0f - dot(_vn, lightDirection)), SHADOW_BIAS_MIN) <= texture(directionalLights[i].shadowTex, vl.xy).r)
         {
             curLightCoef += max(0.0f, dot(lightDirection, _vn));
             curLightCoef += pow(max(0.0f, dot(_vn, normalize(lightDirection + normalize(camPos - _v)))), 128f);
@@ -103,17 +102,17 @@ void main()
     for (int i = 0; i < spotLightsCount; i++)
     {
         curLightCoef = 0f;
-
+    
         vec3 lightDirection = normalize(spotLights[i].position - _v);
         if (dot(lightDirection, -spotLights[i].direction) >= cos(spotLights[i].angle / 2.0f))
         {
             vec3 vl = (_vsl[i].xyz / _vsl[i].w) * 0.5f + 0.5f;
             if ((2.0 * spot_near) / (spotLights[i].radius + spot_near - (vl.z * 2.0f - 1.0f) * (spotLights[i].radius - spot_near)) - 
-                max(SHADOW_BIAS_MAX * (1.0 - dot(_vn, lightDirection)), SHADOW_BIAS_MIN) < 
+                max(SHADOW_BIAS_MAX * (1.0f - dot(_vn, lightDirection)), SHADOW_BIAS_MIN) <=
                 (2.0 * spot_near) / (spotLights[i].radius + spot_near - (texture(spotLights[i].shadowTex, vl.xy).r * 2.0f - 1.0f) * (spotLights[i].radius - spot_near)))
             {
                 float dist = distance(spotLights[i].position, _v);
-
+    
                 curLightCoef += max(0.0f, dot(lightDirection, _vn));
                 curLightCoef += pow(max(0.0f, dot(_vn, normalize(lightDirection + normalize(camPos - _v)))), 128f);
                 curLightCoef *= pow(spotLights[i].brightness * (spotLights[i].radius - dist) / spotLights[i].radius, (4.0f - 3.0f * spotLights[i].intensity) / 2.0f);
@@ -124,7 +123,20 @@ void main()
     }
     for (int i = 0; i < pointLightsCount; i++)
     {
+        curLightCoef = 0f;
+        
+        vec3 lightVec = _v - pointLights[i].position;
+        vec3 lightDirection = -normalize(lightVec);
+        float dist = length(lightVec);
+        if (dist - max(SHADOW_BIAS_MAX * (1.0f - dot(_vn, -normalize(lightVec))), SHADOW_BIAS_MIN) <= 
+            texture(pointLights[i].shadowCube, lightVec).r * pointLights[i].radius)
+        {
+            curLightCoef += max(0.0f, dot(lightDirection, _vn));
+            curLightCoef += pow(max(0.0f, dot(_vn, normalize(lightDirection + normalize(camPos - _v)))), 128f);
+            curLightCoef *= pow(pointLights[i].brightness * (pointLights[i].radius - dist) / pointLights[i].radius, (4.0f - 3.0f * pointLights[i].intensity) / 2.0f);
+        }
 
+        lightColor += pointLights[i].color * curLightCoef;
     }
     //for (int i = 0; i < lightsCount; i++)
     //{

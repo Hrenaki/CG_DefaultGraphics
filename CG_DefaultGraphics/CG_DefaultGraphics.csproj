@@ -51,6 +51,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -64,6 +65,7 @@
     <Compile Include="BaseComponents\Component.cs" />
     <Compile Include="BaseComponents\Light.cs" />
     <Compile Include="BaseComponents\Mesh.cs" />
+    <Compile Include="Components\AutoFlyAround.cs" />
     <Compile Include="Components\Controller.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="GameObject.cs" />
@@ -91,7 +93,7 @@
     <Content Include="Assets\Shaders\light_point.vsh">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Assets\Shaders\quad.vsh">
+    <Content Include="Assets\Shaders\postProcessing.vsh">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\Shaders\light_directional.vsh">
@@ -100,7 +102,7 @@
     <None Include="Assets\Shaders\light_point.fsh">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Assets\Shaders\quad.fsh">
+    <None Include="Assets\Shaders\postProcessing.fsh">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Assets\Shaders\light_directional.fsh">

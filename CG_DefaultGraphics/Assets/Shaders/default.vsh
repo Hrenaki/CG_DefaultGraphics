@@ -6,8 +6,7 @@ layout(location = 1) in vec2 vt;
 layout(location = 2) in vec3 vn;
 
 uniform mat4 model;
-uniform mat4 proj;
-uniform mat4 view;
+uniform mat4 camSpace;
 
 //struct Light
 //{
@@ -58,9 +57,9 @@ struct PointLight
     float brightness;
     float intensity;
     vec3 color;
-    mat4 lightSpaces[6];
     samplerCube shadowCube;
 };
+
 uniform AmbientLight ambientLights[MAX_LIGHTS_COUNT];
 uniform int ambientLightsCount;
 uniform DirectionalLight directionalLights[MAX_LIGHTS_COUNT];
@@ -78,7 +77,7 @@ out vec4 _vsl[MAX_LIGHTS_COUNT];
 
 void main(void)
 {
-	gl_Position = proj * view * model * vec4(v, 1.0f);
+	gl_Position = camSpace * model * vec4(v, 1.0f);
 	_v = (model * vec4(v, 1.0f)).xyz;
 	_vt = vt;
 	_vn = vn;
