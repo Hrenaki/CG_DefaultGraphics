@@ -20,7 +20,7 @@ namespace CG_DefaultGraphics
         private int HDRFBO;
         private int HDRTexture;
         private int quadVAO;
-        private float exposure = 1.0f;
+        private float exposure = 2.0f;
         public MainWindow() : base(1920, 1080, GraphicsMode.Default, "Computer graphics")
         {
             Input.Init();
@@ -105,30 +105,32 @@ namespace CG_DefaultGraphics
             objects.Add(cameraObject);
             camera.MakeCurrent();
 
-            AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj");
+            //AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj");
             //Model bigCube = AssetsManager.Models["cube"];
             //AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj");
             //AssetsManager.Models["bigCube"] = bigCube;
 
-            GameObject cube = new GameObject();
-            Mesh cubeMesh = (Mesh)cube.addComponent<Mesh>();
+            GameObject diamond = new GameObject();
+            Mesh diamondMesh = (Mesh)diamond.addComponent<Mesh>();
             //cubeMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", 1.0f, true)["diamondwhite_dmesh"];
-            cubeMesh.model = AssetsManager.Models["cube"];
-            cubeMesh.texture = AssetsManager.LoadTexture("Assets\\Textures\\template.png");
-            objects.Add(cube);
-
-            AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj", 5f, true);
+            diamondMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", 1.0f, true)["diamondwhite_dmesh"];
+            diamondMesh.texture = AssetsManager.LoadTexture("Assets\\Textures\\default_white.png", "", true);
+            diamondMesh.material.metallic = 76.8f;
+            diamondMesh.material.ambient = new Color4(0.0215f, 0.1745f, 0.0215f, 1f);
+            diamondMesh.material.diffuse = new Color4(0.07568f, 0.61424f, 0.07568f, 1f);
+            diamondMesh.material.specular = new Color4(0.633f, 0.727811f, 0.633f, 1f);
+            objects.Add(diamond);
 
             GameObject cube2 = new GameObject();
             Mesh cubeMesh2 = (Mesh)cube2.addComponent<Mesh>();
             //diamondMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", true)["diamondwhite_dmesh"];
-            cubeMesh2.model = AssetsManager.Models["cube"];
-            cubeMesh2.texture = AssetsManager.Textures["template"];
+            cubeMesh2.model = AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj", 5f, true)["cube"];
+            cubeMesh2.texture = AssetsManager.LoadTexture("Assets\\Textures\\template.png", "", true);
             objects.Add(cube2);
 
             GameObject ambientObj = new GameObject();
             AmbientLight ambient = (AmbientLight)ambientObj.addComponent<AmbientLight>();
-            ambient.Brightness = 0.2f;
+            ambient.Brightness = 0.1f;
             objects.Add(ambientObj);
 
             GameObject directionalObj = new GameObject();
@@ -137,8 +139,8 @@ namespace CG_DefaultGraphics
             PointLight directional = (PointLight)directionalObj.addComponent<PointLight>();
             directional.Brightness = 0.5f;
             directional.Radius = 20f;
-            directional.Intensity = 1f;
-            directional.color = Color4.DarkOrange;
+            directional.Intensity = 0f;
+            directional.color = Color4.White;
             directionalObj.addComponent<AutoFlyAround>();
             //directional.Angle = (float)Math.PI / 180f * 100f;
             objects.Add(directionalObj);
@@ -362,6 +364,10 @@ namespace CG_DefaultGraphics
                     {
                         if (mesh.texture != null)
                             GL.BindTexture(TextureTarget.Texture2D, mesh.texture.id);
+                        GL.Uniform3(shader.locations["material.ambient"], mesh.material.ambient.R, mesh.material.ambient.G, mesh.material.ambient.B);
+                        GL.Uniform3(shader.locations["material.diffuse"], mesh.material.diffuse.R, mesh.material.diffuse.G, mesh.material.diffuse.B);
+                        GL.Uniform3(shader.locations["material.specular"], mesh.material.specular.R, mesh.material.specular.G, mesh.material.specular.B);
+                        GL.Uniform1(shader.locations["material.metallic"], mesh.material.metallic);
                         if (mesh.model != null)
                         {
                             GL.BindVertexArray(mesh.model.VAO);
@@ -393,6 +399,7 @@ namespace CG_DefaultGraphics
             GL.BindTexture(TextureTarget.Texture2D, HDRTexture);
 
             GL.Uniform1(postProcessingShader.locations["exposure"], exposure);
+            //GL.Uniform1(postProcessingShader.locations["time"], (float)Time.TotalTime);
 
             GL.BindVertexArray(quadVAO);
             GL.DrawArrays(PrimitiveType.Quads, 0, 4);
@@ -411,11 +418,27 @@ namespace CG_DefaultGraphics
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             Time.DeltaTime = e.Time;
+            Time.TotalTime += e.Time;
             Input.OnUpdateFrame();
 
             foreach (GameObject obj in objects)
                 foreach (Component component in obj.components)
                     component.update();
+
+            if (Input.IsKeyDown(Key.E))
+            {
+                if (Input.IsKeyDown(Key.KeypadPlus))
+                    exposure += (float)Time.DeltaTime * exposure;
+                if (Input.IsKeyDown(Key.KeypadMinus))
+                    exposure -= (float)Time.DeltaTime * exposure;
+            }
+            if (Input.IsKeyDown(Key.F))
+            {
+                if (Input.IsKeyDown(Key.KeypadPlus))
+                    Camera.Current.FOV += (float)Time.DeltaTime * Camera.Current.FOV;
+                if (Input.IsKeyDown(Key.KeypadMinus))
+                    Camera.Current.FOV -= (float)Time.DeltaTime * Camera.Current.FOV;
+            }
 
             if (Input.IsKeyPressed(Key.Escape))
                 Exit();

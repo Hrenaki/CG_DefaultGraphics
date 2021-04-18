@@ -119,7 +119,7 @@ namespace CG_DefaultGraphics
     {
         public Bitmap image;
         public int id;
-        public Texture(Bitmap image)
+        public Texture(Bitmap image, bool applyGammaCorrection = false)
         {
             this.image = image;
 
@@ -145,7 +145,7 @@ namespace CG_DefaultGraphics
                     data[i, j * 4 + 3] = color.A;
                 }
 
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, applyGammaCorrection ? PixelInternalFormat.SrgbAlpha : PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
 
             GL.BindTexture(TextureTarget.Texture2D, 0);
         }
@@ -235,13 +235,14 @@ namespace CG_DefaultGraphics
             int offset_v = 0;
             int offset_t = 0;
             int offset_n = 0;
+            char[] separator = new char[] { ' ' };
             while ((line = reader.ReadLine()) != null)
             {
                 if (NumberFormatInfo.CurrentInfo.NumberDecimalSeparator == ",")
                     line = line.Replace('.', ',');
                 else
                     line = line.Replace(',', '.');
-                string[] words = line.Split(' ');
+                string[] words = line.Split(separator, StringSplitOptions.RemoveEmptyEntries);
                 if (words.Length == 0)
                     continue;
                 switch (words[0])
@@ -354,12 +355,12 @@ namespace CG_DefaultGraphics
             Shaders[shaderName] = shader;
             return shader;
         }
-        public static Texture LoadTexture(string path, string textureName = "")
+        public static Texture LoadTexture(string path, string textureName = "", bool applyGammaCorrection = false)
         {
             if (textureName == "")
                 textureName = Path.GetFileNameWithoutExtension(path);
 
-            Texture texture = new Texture(new Bitmap(path));
+            Texture texture = new Texture(new Bitmap(path), applyGammaCorrection);
 
             Textures[textureName] = texture;
 
