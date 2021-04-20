@@ -17,7 +17,6 @@ namespace CG_DefaultGraphics.BaseComponents
         public float far;
         public Matrix4 camSpace { get
             {
-                //return Matrix4.LookAt(gameObject.transform.position, gameObject.transform.position + gameObject.transform.forward, gameObject.transform.up);
                 Vector3 r = gameObject.transform.right;
                 Vector3 u = gameObject.transform.up;
                 Vector3 f = gameObject.transform.forward;
@@ -32,12 +31,6 @@ namespace CG_DefaultGraphics.BaseComponents
                                            0f, 0f, (far + near) / (far - near), -2f * far * near / (far - near),
                                            0f, 0f, 1f, 0f);
                 return proj * view;
-                //Matrix4 translation = new Matrix4(1, 0, 0, gameObject.transform.position.X,
-                //                                  0, 1, 0, gameObject.transform.position.Y,
-                //                                  0, 0, 1, gameObject.transform.position.Z,
-                //                                  0, 0, 0, 1);
-                //Matrix4 rot = gameObject.transform.rotation.createRotation();
-                //return (translation * rot).Inverted();
             } 
         }
         public void MakeCurrent()

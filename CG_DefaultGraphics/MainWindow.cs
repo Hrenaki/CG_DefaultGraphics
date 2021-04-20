@@ -40,7 +40,6 @@ namespace CG_DefaultGraphics
         {
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.CullFace);
-            //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             GL.CullFace(CullFaceMode.Back);
 
             setupFBOs();
@@ -230,7 +229,6 @@ namespace CG_DefaultGraphics
                 }
             }
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            //renderDepthBuffer((lights[0] as PointLight).shadowCube, PointLight.NEAR, (lights[0] as PointLight).Radius);
         }
         private void renderScene()
         {
@@ -246,15 +244,6 @@ namespace CG_DefaultGraphics
             List<Light> lights = new List<Light>();
             foreach (GameObject obj in objects)
                 lights.AddRange(obj.getComponents<Light>().Cast<Light>());
-
-            //int loc_lightsPositions = shader.locations["lights[0].position"];
-            //int loc_lightsDirections = shader.locations["lights[0].direction"];
-            //int loc_lightsCoeffs = shader.locations["lights[0].coeffs"];
-            //int loc_lightsColors = shader.locations["lights[0].color"];
-            //int loc_lightSpaces = shader.locations["lights[0].lightSpace"];
-            //int loc_shadowMap = shader.locations["lights[0].shadowTex"];
-            ////int loc_shadowCube = shader.locations["lights[0].shadowCube"];
-            //int loc_offset = 6;
 
             int ambientLights = 0;
             int spotLights = 0;
@@ -371,8 +360,6 @@ namespace CG_DefaultGraphics
             GL.BindVertexArray(0);
 
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-
-            //SwapBuffers();
         }
         private void renderBloom()
         {

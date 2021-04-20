@@ -8,19 +8,6 @@ layout(location = 2) in vec3 vn;
 uniform mat4 model;
 uniform mat4 camSpace;
 
-//struct Light
-//{
-//	vec4 position;
-//	vec4 direction;
-//	vec4 coeffs;
-//	vec3 color;
-//	mat4 lightSpace[6];
-//	sampler2D shadowTex;
-//	//samplerCube shadowCube;
-//};
-//uniform Light lights[MAX_LIGHTS_COUNT];
-//uniform int lightsCount;
-
 struct AmbientLight
 {
     float brightness;
@@ -81,7 +68,6 @@ void main(void)
 	_v = (model * vec4(v, 1.0f)).xyz;
 	_vt = vt;
 	_vn = vn;
-    vec4 vl;
     for (int i = 0; i < directionalLightsCount; i++)
         _vdl[i] = directionalLights[i].lightSpace * model * vec4(v, 1.0f);
     for (int i = 0; i < spotLightsCount; i++)

@@ -9,13 +9,6 @@ using OpenTK;
 
 namespace CG_DefaultGraphics.BaseComponents
 {
-    //public enum LightType
-    //{
-    //    Ambient = 0,
-    //    Directional = 1,
-    //    Point = 2,
-    //    Spot = 3
-    //}
     public abstract class Light : Component
     {
         public Color4 color = Color4.White;
