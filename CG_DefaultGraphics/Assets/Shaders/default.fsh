@@ -70,6 +70,7 @@ uniform vec3 camPos;
 uniform float spot_near;
 
 layout (location = 0) out vec4 outColor;
+layout (location = 1) out vec4 bloomColor;
 
 void main()
 {
@@ -136,4 +137,5 @@ void main()
     }
     vec3 baseColor = texture(tex, _vt).rgb;
     outColor = vec4(baseColor * lightColor, 1.0f);
+    bloomColor = length(outColor.rgb) > 1.0f ? outColor : vec4(0f);
 }

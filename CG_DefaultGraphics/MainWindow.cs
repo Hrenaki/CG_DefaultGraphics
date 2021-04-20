@@ -14,12 +14,19 @@ namespace CG_DefaultGraphics
 {
     public class MainWindow : GameWindow
     {
+        private class FrameBuffer
+        {
+            public int id;
+            public List<int> textures = new List<int>();
+        }
         private List<GameObject> objects = new List<GameObject>();
         private Shader shader;
         private int HDRFBO;
         private int HDRTexture;
+        private int bloomTexture;
         private int quadVAO;
         private float exposure = 2.0f;
+        private List<FrameBuffer> FBOs = new List<FrameBuffer>();
         public MainWindow() : base(1920, 1080, GraphicsMode.Default, "Computer graphics")
         {
             Input.Init();
@@ -36,6 +43,26 @@ namespace CG_DefaultGraphics
             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             GL.CullFace(CullFaceMode.Back);
 
+            setupFBOs();
+            setupQuad();
+
+            shader = AssetsManager.LoadShader("default", new ShaderComponent("Assets\\Shaders\\default.vsh"), new ShaderComponent("Assets\\Shaders\\default.fsh"));
+            AssetsManager.LoadShader("light_directional", new ShaderComponent("Assets\\Shaders\\light_directional.vsh"), new ShaderComponent("Assets\\Shaders\\light_directional.fsh"));
+            AssetsManager.LoadShader("light_point", new ShaderComponent("Assets\\Shaders\\light_point.vsh"), new ShaderComponent("Assets\\Shaders\\light_point.gsh"), new ShaderComponent("Assets\\Shaders\\light_point.fsh"));
+            AssetsManager.LoadShader("postProcessing", new ShaderComponent("Assets\\Shaders\\postProcessing.vsh"), new ShaderComponent("Assets\\Shaders\\postProcessing.fsh"));
+            AssetsManager.LoadShader("bloom", new ShaderComponent("Assets\\Shaders\\bloom.vsh"), new ShaderComponent("Assets\\Shaders\\bloom.fsh"));
+
+            AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", 1.0f, true);
+            AssetsManager.LoadTexture("Assets\\Textures\\default_white.png", "", true);
+            AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj", 5f, true);
+            AssetsManager.LoadTexture("Assets\\Textures\\template.png", "", true);
+
+            Scene scene = AssetsManager.LoadScene("Assets\\Scenes\\scene1.xml");
+            objects = scene.objects;
+            scene.MainCamera.MakeCurrent();
+        }
+        private void setupFBOs()
+        {
             HDRFBO = GL.GenFramebuffer();
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, HDRFBO);
 
@@ -44,10 +71,14 @@ namespace CG_DefaultGraphics
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, Width, Height, 0, PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            //GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-            //GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, HDRTexture, 0);
+
+            bloomTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, bloomTexture);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, Width, Height, 0, PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, TextureTarget.Texture2D, bloomTexture, 0);
 
             int HDRDepth = GL.GenRenderbuffer();
             GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, HDRDepth);
@@ -55,12 +86,32 @@ namespace CG_DefaultGraphics
 
             GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, HDRDepth);
 
-            GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
+            GL.DrawBuffers(2, new DrawBuffersEnum[] { DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1 });
 
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             GL.BindTexture(TextureTarget.Texture2D, 0);
             GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
 
+            for (int i = 0; i < 2; i++)
+            {
+                FrameBuffer FBO = new FrameBuffer();
+                FBO.id = GL.GenFramebuffer();
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, FBO.id);
+
+                FBO.textures.Add(GL.GenTexture());
+                GL.BindTexture(TextureTarget.Texture2D, FBO.textures[0]);
+                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, Width, Height, 0, PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+                GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, FBO.textures[0], 0);
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+                GL.BindTexture(TextureTarget.Texture2D, 0);
+
+                FBOs.Add(FBO);
+            }
+        }
+        private void setupQuad()
+        {
             float[] data = new float[] { -1f, 1f, 0f, 1f,
                                          -1f, -1f, 0f, 0f,
                                          1f, -1f, 1f, 0f,
@@ -82,25 +133,12 @@ namespace CG_DefaultGraphics
 
             GL.BindVertexArray(0);
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-
-            shader = AssetsManager.LoadShader("default", new ShaderComponent("Assets\\Shaders\\default.vsh"), new ShaderComponent("Assets\\Shaders\\default.fsh"));
-            AssetsManager.LoadShader("light_directional", new ShaderComponent("Assets\\Shaders\\light_directional.vsh"), new ShaderComponent("Assets\\Shaders\\light_directional.fsh"));
-            AssetsManager.LoadShader("light_point", new ShaderComponent("Assets\\Shaders\\light_point.vsh"), new ShaderComponent("Assets\\Shaders\\light_point.gsh"), new ShaderComponent("Assets\\Shaders\\light_point.fsh"));
-            AssetsManager.LoadShader("postProcessing", new ShaderComponent("Assets\\Shaders\\postProcessing.vsh"), new ShaderComponent("Assets\\Shaders\\postProcessing.fsh"));
-
-            AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", 1.0f, true);
-            AssetsManager.LoadTexture("Assets\\Textures\\default_white.png", "", true);
-            AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj", 5f, true);
-            AssetsManager.LoadTexture("Assets\\Textures\\template.png", "", true);
-
-            Scene scene = AssetsManager.LoadScene("Assets\\Scenes\\scene1.xml");
-            objects = scene.objects;
-            scene.MainCamera.MakeCurrent();
         }
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             renderLights();
             renderScene();
+            renderBloom();
             renderPostProcessing();
         }
         private void renderLights()
@@ -336,6 +374,34 @@ namespace CG_DefaultGraphics
 
             //SwapBuffers();
         }
+        private void renderBloom()
+        {
+            Shader blurShader = AssetsManager.Shaders["bloom"];
+            GL.UseProgram(blurShader.id);
+            int horizontal = 0;
+            bool first = true;
+            int i;
+            GL.ActiveTexture(TextureUnit.Texture0);
+            for (i = 0; i < 10; i++)
+            {
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, FBOs[horizontal].id);
+                GL.Uniform1(blurShader.locations["horizontal"], horizontal);
+                GL.BindTexture(TextureTarget.Texture2D, first ? bloomTexture : FBOs[1 - horizontal].textures[0]);
+                GL.BindVertexArray(quadVAO);
+                GL.DrawArrays(PrimitiveType.Quads, 0, 4);
+                horizontal = 1 - horizontal;
+                first = false;
+            }
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+
+            if (i % 2 == 0)
+            {
+                FrameBuffer tmp = FBOs[0];
+                FBOs[0] = FBOs[1];
+                FBOs[1] = tmp;
+            }
+        }
         private void renderPostProcessing()
         {
             GL.ClearColor(new Color4(0.2f, 0.2f, 0.2f, 0.2f));
@@ -347,8 +413,12 @@ namespace CG_DefaultGraphics
 
             GL.UseProgram(postProcessingShader.id);
 
-            GL.ActiveTexture(TextureUnit.Texture0);
+            GL.ActiveTexture(TextureUnit.Texture1);
+            GL.Uniform1(postProcessingShader.locations["tex"], 1);
             GL.BindTexture(TextureTarget.Texture2D, HDRTexture);
+            GL.ActiveTexture(TextureUnit.Texture2);
+            GL.Uniform1(postProcessingShader.locations["bloomTex"], 2);
+            GL.BindTexture(TextureTarget.Texture2D, FBOs[0].textures[0]);
 
             GL.Uniform1(postProcessingShader.locations["exposure"], exposure);
             //GL.Uniform1(postProcessingShader.locations["time"], (float)Time.TotalTime);
