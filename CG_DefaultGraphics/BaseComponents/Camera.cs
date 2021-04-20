@@ -11,7 +11,7 @@ namespace CG_DefaultGraphics.BaseComponents
     {
         public static Camera Current { get; private set; }
 
-        public float FOV;
+        public float FOV = (float)Math.PI / 2f;
         public float resolution;
         public float near;
         public float far;

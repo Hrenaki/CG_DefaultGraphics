@@ -9,7 +9,6 @@ using OpenTK.Graphics.OpenGL4;
 using CG_DefaultGraphics.BaseComponents;
 using CG_DefaultGraphics.Components;
 using OpenTK.Input;
-using System.Xaml;
 
 namespace CG_DefaultGraphics
 {
@@ -58,9 +57,6 @@ namespace CG_DefaultGraphics
 
             GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
 
-            if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
-                throw new Exception("Frame buffer is not complete.");
-
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             GL.BindTexture(TextureTarget.Texture2D, 0);
             GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
@@ -92,58 +88,14 @@ namespace CG_DefaultGraphics
             AssetsManager.LoadShader("light_point", new ShaderComponent("Assets\\Shaders\\light_point.vsh"), new ShaderComponent("Assets\\Shaders\\light_point.gsh"), new ShaderComponent("Assets\\Shaders\\light_point.fsh"));
             AssetsManager.LoadShader("postProcessing", new ShaderComponent("Assets\\Shaders\\postProcessing.vsh"), new ShaderComponent("Assets\\Shaders\\postProcessing.fsh"));
 
-            GameObject cameraObject = new GameObject();
-            cameraObject.transform.position = new Vector3(0f, 2f, -4f);
-            cameraObject.transform.rotation = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI / 6f);
-            Controller controller = (Controller)cameraObject.addComponent<Controller>();
-            controller.speed = 10f;
-            Camera camera = (Camera)cameraObject.addComponent<Camera>();
-            camera.FOV = (float)(85.0 / 180.0 * Math.PI);
-            camera.resolution = (float)Width / (float)Height;
-            camera.near = 0.01f;
-            camera.far = 100f;
-            objects.Add(cameraObject);
-            camera.MakeCurrent();
+            AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", 1.0f, true);
+            AssetsManager.LoadTexture("Assets\\Textures\\default_white.png", "", true);
+            AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj", 5f, true);
+            AssetsManager.LoadTexture("Assets\\Textures\\template.png", "", true);
 
-            //AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj");
-            //Model bigCube = AssetsManager.Models["cube"];
-            //AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj");
-            //AssetsManager.Models["bigCube"] = bigCube;
-
-            GameObject diamond = new GameObject();
-            Mesh diamondMesh = (Mesh)diamond.addComponent<Mesh>();
-            //cubeMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", 1.0f, true)["diamondwhite_dmesh"];
-            diamondMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", 1.0f, true)["diamondwhite_dmesh"];
-            diamondMesh.texture = AssetsManager.LoadTexture("Assets\\Textures\\default_white.png", "", true);
-            diamondMesh.material.metallic = 76.8f;
-            diamondMesh.material.ambient = new Color4(0.0215f, 0.1745f, 0.0215f, 1f);
-            diamondMesh.material.diffuse = new Color4(0.07568f, 0.61424f, 0.07568f, 1f);
-            diamondMesh.material.specular = new Color4(0.633f, 0.727811f, 0.633f, 1f);
-            objects.Add(diamond);
-
-            GameObject cube2 = new GameObject();
-            Mesh cubeMesh2 = (Mesh)cube2.addComponent<Mesh>();
-            //diamondMesh.model = AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", true)["diamondwhite_dmesh"];
-            cubeMesh2.model = AssetsManager.LoadModelsFile("Assets\\Models\\cube.obj", 5f, true)["cube"];
-            cubeMesh2.texture = AssetsManager.LoadTexture("Assets\\Textures\\template.png", "", true);
-            objects.Add(cube2);
-
-            GameObject ambientObj = new GameObject();
-            AmbientLight ambient = (AmbientLight)ambientObj.addComponent<AmbientLight>();
-            ambient.Brightness = 0.1f;
-            objects.Add(ambientObj);
-
-            GameObject directionalObj = new GameObject();
-            directionalObj.transform.position.Y = 2.0f;
-            //directionalObj.transform.rotation = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI / 6f);
-            PointLight directional = (PointLight)directionalObj.addComponent<PointLight>();
-            directional.Brightness = 0.5f;
-            directional.Radius = 20f;
-            directional.Intensity = 0f;
-            directional.color = Color4.White;
-            directionalObj.addComponent<AutoFlyAround>();
-            //directional.Angle = (float)Math.PI / 180f * 100f;
-            objects.Add(directionalObj);
+            Scene scene = AssetsManager.LoadScene("Assets\\Scenes\\scene1.xml");
+            objects = scene.objects;
+            scene.MainCamera.MakeCurrent();
         }
         protected override void OnRenderFrame(FrameEventArgs e)
         {

@@ -87,6 +87,9 @@
     <None Include="Assets\Shaders\default.fsh">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="Assets\Scenes\scene1.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\Shaders\light_point.gsh">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

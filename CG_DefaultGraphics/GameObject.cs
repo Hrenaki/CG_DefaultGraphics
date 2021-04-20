@@ -14,6 +14,7 @@ namespace CG_DefaultGraphics
         public GameObject()
         {
             transform = new Transform();
+            transform.gameObject = this;
             components.Add(transform);
         }
         public Component addComponent<T>()
@@ -21,6 +22,15 @@ namespace CG_DefaultGraphics
             if (!typeof(T).IsSubclassOf(typeof(Component)))
                 throw new ArgumentException("Given type must be a component");
             Component component = Activator.CreateInstance(typeof(T)) as Component;
+            component.gameObject = this;
+            components.Add(component);
+            return component;
+        }
+        public Component addComponent(Type t)
+        {
+            if (!t.IsSubclassOf(typeof(Component)))
+                throw new ArgumentException("Given type must be a component");
+            Component component = Activator.CreateInstance(t) as Component;
             component.gameObject = this;
             components.Add(component);
             return component;

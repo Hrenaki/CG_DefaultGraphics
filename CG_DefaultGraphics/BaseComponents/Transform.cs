@@ -9,19 +9,16 @@ namespace CG_DefaultGraphics.BaseComponents
 {
     public class Transform : Component
     {
+        public Transform Parent;
         public Vector3 position;
         public Quaternion rotation;
         public Matrix4 model { get 
             {
-                //return Matrix4.CreateScale(scale.X, scale.Y, scale.Z) * 
-                //       Matrix4.CreateFromQuaternion(rotation) * 
-                //       Matrix4.CreateTranslation(position.X, position.Y, position.Z); 
-                Matrix4 translation = new Matrix4(1, 0, 0, position.X,
-                                                  0, 1, 0, position.Y,
-                                                  0, 0, 1, position.Z,
-                                                  0, 0, 0, 1);
-                Matrix4 rot = Matrix4.CreateFromQuaternion(rotation);
-                return translation * rot;
+                Matrix4 mat = Matrix4.CreateFromQuaternion(rotation);
+                mat.M14 = position.X;
+                mat.M24 = position.Y;
+                mat.M34 = position.Z;
+                return Parent == null ? mat : Parent.model * mat;
             }
         }
         public Vector3 forward { get { return rotation * Vector3.UnitZ; } }
