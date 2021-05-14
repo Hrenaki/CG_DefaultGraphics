@@ -285,7 +285,6 @@ namespace CG_DefaultGraphics
                     GL.BindTexture(TextureTarget.Texture2D, curLight.shadowTex);
 
                     GL.Uniform3(shader.locations["directionalLights[" + directionalLights.ToString() + "].direction"], curLight.gameObject.transform.forward);
-                    GL.Uniform1(shader.locations["directionalLights[" + directionalLights.ToString() + "].radius"], curLight.Radius);
                     GL.Uniform1(shader.locations["directionalLights[" + directionalLights.ToString() + "].brightness"], curLight.Brightness);
                     GL.Uniform3(shader.locations["directionalLights[" + directionalLights.ToString() + "].color"], lights[i].color.R, lights[i].color.G, lights[i].color.B);
 
