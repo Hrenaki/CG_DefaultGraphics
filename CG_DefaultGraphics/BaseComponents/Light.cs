@@ -36,8 +36,8 @@ namespace CG_DefaultGraphics.BaseComponents
             get => radius;
             set
             {
-                if (value < 0.0f)
-                    throw new ArgumentOutOfRangeException("Radius", "Radius can't be negative");
+                if (value <= 0.0f)
+                    throw new ArgumentOutOfRangeException("Radius", "Radius can't be less or equal to zero");
                 radius = value;
             }
         }

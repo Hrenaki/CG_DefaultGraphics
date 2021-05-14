@@ -27,6 +27,8 @@ namespace CG_DefaultGraphics
         private int quadVAO;
         private float exposure = 2.0f;
         private List<FrameBuffer> FBOs = new List<FrameBuffer>();
+
+        private DirectionalLight light;
         public MainWindow() : base(1920, 1080, GraphicsMode.Default, "Computer graphics")
         {
             Input.Init();
@@ -50,6 +52,7 @@ namespace CG_DefaultGraphics
             AssetsManager.LoadShader("light_point", new ShaderComponent("Assets\\Shaders\\light_point.vsh"), new ShaderComponent("Assets\\Shaders\\light_point.gsh"), new ShaderComponent("Assets\\Shaders\\light_point.fsh"));
             AssetsManager.LoadShader("postProcessing", new ShaderComponent("Assets\\Shaders\\postProcessing.vsh"), new ShaderComponent("Assets\\Shaders\\postProcessing.fsh"));
             AssetsManager.LoadShader("bloom", new ShaderComponent("Assets\\Shaders\\bloom.vsh"), new ShaderComponent("Assets\\Shaders\\bloom.fsh"));
+            AssetsManager.LoadShader("quad", new ShaderComponent("Assets\\Shaders\\quad.vsh"), new ShaderComponent("Assets\\Shaders\\quad.fsh"));
 
             AssetsManager.LoadModelsFile("Assets\\Models\\diamonds.obj", 1.0f, true);
             AssetsManager.LoadTexture("Assets\\Textures\\default_white.png", "", true);
@@ -58,6 +61,7 @@ namespace CG_DefaultGraphics
 
             Scene scene = AssetsManager.LoadScene("Assets\\Scenes\\scene1.xml");
             objects = scene.objects;
+
             scene.MainCamera.MakeCurrent();
         }
         private void setupFBOs()
@@ -184,7 +188,7 @@ namespace CG_DefaultGraphics
                     GL.BindFramebuffer(FramebufferTarget.Framebuffer, curLight.FBO);
                     GL.Clear(ClearBufferMask.DepthBufferBit);
 
-                    GL.Viewport(0, 0, SpotLight.SHADOW_SIZE, SpotLight.SHADOW_SIZE);
+                    GL.Viewport(0, 0, DirectionalLight.SHADOW_SIZE, DirectionalLight.SHADOW_SIZE);
 
                     Matrix4 lightSpace = curLight.lightSpace;
 
@@ -422,6 +426,29 @@ namespace CG_DefaultGraphics
             //    total += pixels[i];
             //total /= pixels.Length;
             //exposure += (0.4f - total) * 0.1f;
+        }
+        private void renderQuad(int texture)
+        {
+            GL.ClearColor(new Color4(0.2f, 0.2f, 0.2f, 0.2f));
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.CullFace(CullFaceMode.Back);
+            GL.Viewport(0, 0, Width, Height);
+
+            Shader curShader = AssetsManager.Shaders["quad"];
+
+            GL.UseProgram(curShader.id);
+
+            //GL.ActiveTexture(TextureUnit.Texture1);
+            //GL.Uniform1(AssetsManager.Shaders["quad"].locations["tex"], 1);
+            GL.BindTexture(TextureTarget.Texture2D, texture);
+            //GL.Uniform1(curShader.locations["far"], light.Radius);
+            //GL.Uniform1(curShader.locations["near"], SpotLight.NEAR);
+
+            GL.BindVertexArray(quadVAO);
+            GL.DrawArrays(PrimitiveType.Quads, 0, 4);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+
+            SwapBuffers();
         }
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
