@@ -136,5 +136,5 @@ void main()
     }
     vec3 baseColor = texture(tex, _vt).rgb;
     outColor = vec4(baseColor * lightColor, 1.0f);
-    bloomColor = length(outColor.rgb) > 1.0f ? outColor : vec4(0f);
+    bloomColor = length(outColor.rgb) > 1.0f ? outColor : vec4(0);
 }

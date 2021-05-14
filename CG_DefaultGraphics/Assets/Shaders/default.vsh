@@ -17,7 +17,6 @@ struct AmbientLight
 struct DirectionalLight
 {
     vec3 direction;
-    float radius;
     float brightness;
     vec3 color;
     mat4 lightSpace;
