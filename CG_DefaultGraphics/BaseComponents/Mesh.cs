@@ -20,6 +20,13 @@ namespace CG_DefaultGraphics.BaseComponents
         public Color4 diffuse;
         public Color4 specular;
         public float metallic;
+        public Material()
+        {
+            ambient = Color4.White;
+            diffuse = Color4.White;
+            specular = Color4.White;
+            metallic = 32f;
+        }
         public Material(Color4 ambient, Color4 diffuse, Color4 specular, float metallic)
         {
             this.ambient = ambient;
