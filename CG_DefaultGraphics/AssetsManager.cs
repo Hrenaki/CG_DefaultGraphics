@@ -449,7 +449,7 @@ namespace CG_DefaultGraphics
                         }
                 }
             }
-            void parseAttributes(object obj, IEnumerable<XAttribute> attributes)
+            void parseAttributes(ref object obj, IEnumerable<XAttribute> attributes)
             {
                 Type objType = obj.GetType();
                 foreach (XAttribute attrib in attributes)
@@ -465,6 +465,21 @@ namespace CG_DefaultGraphics
                         parseSpecialAttribute(obj, attrib.Name.LocalName, attrib.Value.Substring(1, attrib.Value.Length - 2));
                     else
                     {
+                        if (obj is Quaternion)
+                        {
+                            switch (attrib.Name.LocalName)
+                            {
+                                case "X":
+                                    obj = Quaternion.FromAxisAngle(Vector3.UnitX, float.Parse(attrib.Value)) * (Quaternion)obj;
+                                    continue;
+                                case "Y":
+                                    obj = Quaternion.FromAxisAngle(Vector3.UnitY, float.Parse(attrib.Value)) * (Quaternion)obj;
+                                    continue;
+                                case "Z":
+                                    obj = Quaternion.FromAxisAngle(Vector3.UnitZ, float.Parse(attrib.Value)) * (Quaternion)obj;
+                                    continue;
+                            }
+                        }
                         PropertyInfo property = objType.GetProperty(attrib.Name.LocalName);
                         if (property != null)
                             property.SetValue(obj, Convert.ChangeType(attrib.Value, property.PropertyType));
@@ -490,7 +505,7 @@ namespace CG_DefaultGraphics
                     if (curType == typeof(GameObject))
                     {
                         curObj = Activator.CreateInstance(typeof(GameObject));
-                        parseAttributes(curObj, element.Attributes());
+                        parseAttributes(ref curObj, element.Attributes());
                         object nestedObject;
                         foreach (XElement elem in element.Elements())
                             if ((nestedObject = parseElement(curObj, element, elem)).GetType() == typeof(GameObject))
@@ -504,7 +519,7 @@ namespace CG_DefaultGraphics
                             curObj = (parent as GameObject).transform;
                         else
                             curObj = (parent as GameObject).addComponent(curType);
-                        parseAttributes(curObj, element.Attributes());
+                        parseAttributes(ref curObj, element.Attributes());
                         foreach (XElement elem in element.Elements())
                             parseElement(curObj, element, elem);
                     }
@@ -513,7 +528,7 @@ namespace CG_DefaultGraphics
                         if (parent != null)
                             throw new Exception("Scene must be the root.");
                         curObj = Activator.CreateInstance(typeof(Scene));
-                        parseAttributes(curObj, element.Attributes());
+                        parseAttributes(ref curObj, element.Attributes());
                         foreach (XElement elem in element.Elements())
                         {
                             object sceneObject = parseElement(curObj, element, elem);
@@ -524,11 +539,16 @@ namespace CG_DefaultGraphics
                     }
                     else
                     {
-                        if (curType.GetConstructor(Type.EmptyTypes) != null)
-                            curObj = Activator.CreateInstance(curType);
+                        if (curType == typeof(Quaternion))
+                            curObj = Quaternion.Identity;
                         else
-                            curObj = FormatterServices.GetUninitializedObject(curType);
-                        parseAttributes(curObj, element.Attributes());
+                        {
+                            if (curType.GetConstructor(Type.EmptyTypes) != null)
+                                curObj = Activator.CreateInstance(curType);
+                            else
+                                curObj = FormatterServices.GetUninitializedObject(curType);
+                        }
+                        parseAttributes(ref curObj, element.Attributes());
                         foreach (XElement elem in element.Elements())
                             parseElement(curObj, element, elem);
                     }
@@ -543,13 +563,16 @@ namespace CG_DefaultGraphics
                     IEnumerable<XElement> elements = element.Elements();
                     FieldInfo field = parent.GetType().GetField(nameParts[1]);
                     if (field == null)
-                        throw new Exception(parent.GetType().Name + " don't have " + nameParts[0] + ".");
+                        throw new Exception(parent.GetType().Name + " don't have " + nameParts[1] + ".");
                     if (attributes.Count() != 0)
                     {
                         if (elements.Count() != 0)
                             throw new Exception("Setter can't have values in both places");
-                        curObj = Activator.CreateInstance(field.FieldType);
-                        parseAttributes(curObj, element.Attributes());
+                        if (field.FieldType == typeof(Quaternion))
+                            curObj = Quaternion.Identity;
+                        else
+                            curObj = Activator.CreateInstance(field.FieldType);
+                        parseAttributes(ref curObj, element.Attributes());
                         field.SetValue(parent, curObj);
                     }
                     else

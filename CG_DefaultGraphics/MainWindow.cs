@@ -27,8 +27,6 @@ namespace CG_DefaultGraphics
         private int quadVAO;
         private float exposure = 2.0f;
         private List<FrameBuffer> FBOs = new List<FrameBuffer>();
-
-        private DirectionalLight light;
         public MainWindow() : base(1920, 1080, GraphicsMode.Default, "Computer graphics")
         {
             Input.Init();
